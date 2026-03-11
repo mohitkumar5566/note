@@ -65,11 +65,14 @@
             bottom: 20px;
         }
 
-        /* Force Header to Stay Visible Always */
+        /* FORCE HEADER TO STAY VISIBLE - ABSOLUTE FIX */
         #mobile-header-elements {
             display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
+            position: sticky !important;
+            top: 0 !important;
+            width: 100% !important;
         }
 
         @media (max-width: 768px) {
@@ -102,7 +105,7 @@
                         </div> 
                         NOTES
                     </h1>
-                    <span class="text-[9px] font-bold text-indigo-500 tracking-[0.3em] ml-9 -mt-1">VERSION 2.8</span>
+                    <span class="text-[9px] font-bold text-indigo-500 tracking-[0.3em] ml-9 -mt-1">VERSION 2.9</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <div id="note-count" class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">0</div>
@@ -383,7 +386,9 @@
             displayTitle.innerHTML = smartHighlight(note.title, globalSearchTerm);
             displayContent.innerHTML = smartHighlight(note.content, globalSearchTerm);
             document.getElementById('view-fav-indicator').className = (note.favorite && !note.deleted) ? 'block' : 'hidden';
-            updateSearchMatches();
+            
+            // Wait for DOM update before matching
+            setTimeout(updateSearchMatches, 10);
         }
 
         function smartHighlight(text, highlight) {
@@ -404,8 +409,8 @@
             if (matches.length > 0) {
                 searchControls.classList.remove('hidden');
                 totalMatchesEl.innerText = matches.length;
-                // Don't auto-reset index unless strictly necessary to prevent UI jumps
-                goToMatch(matchIndex < matches.length ? matchIndex : 0);
+                if (matchIndex >= matches.length) matchIndex = 0;
+                goToMatch(matchIndex);
             } else { 
                 searchControls.classList.add('hidden'); 
             }
@@ -418,7 +423,12 @@
             const active = matches[matchIndex];
             if (active) {
                 active.classList.add('active-match');
-                active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Scroll specifically the view-mode container
+                const container = document.querySelector('#view-mode .overflow-y-auto');
+                if (container) {
+                    const topPos = active.offsetTop - (container.offsetHeight / 2);
+                    container.scrollTo({ top: topPos, behavior: 'smooth' });
+                }
                 currentMatchEl.innerText = matchIndex + 1;
             }
         }
