@@ -65,15 +65,16 @@
             bottom: 20px;
         }
 
+        /* Force Header to Stay Visible Always */
+        #mobile-header-elements {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
         @media (max-width: 768px) {
             #editor-mode .content-area {
                 padding-bottom: 100px;
-            }
-            /* Mobile header elements remain visible always */
-            #mobile-header-elements {
-                display: flex !important;
-                visibility: visible !important;
-                opacity: 1 !important;
             }
         }
 
@@ -101,7 +102,7 @@
                         </div> 
                         NOTES
                     </h1>
-                    <span class="text-[9px] font-bold text-indigo-500 tracking-[0.3em] ml-9 -mt-1">VERSION 2.7</span>
+                    <span class="text-[9px] font-bold text-indigo-500 tracking-[0.3em] ml-9 -mt-1">VERSION 2.8</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <div id="note-count" class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">0</div>
@@ -397,10 +398,13 @@
                 searchControls.classList.add('hidden'); 
                 return; 
             }
-            matches = Array.from(document.querySelectorAll('#view-mode mark'));
+            // Ensure matches are calculated on the currently viewed content
+            matches = Array.from(document.querySelectorAll('#view-mode mark.search-highlight'));
+            
             if (matches.length > 0) {
                 searchControls.classList.remove('hidden');
                 totalMatchesEl.innerText = matches.length;
+                // Don't auto-reset index unless strictly necessary to prevent UI jumps
                 goToMatch(matchIndex < matches.length ? matchIndex : 0);
             } else { 
                 searchControls.classList.add('hidden'); 
