@@ -38,39 +38,40 @@
             z-index: 1000;
         }
 
-        /* Fixed Search Highlighting (No jumping or scaling) */
+        /* Fixed Search Highlighting */
         mark.search-highlight {
-            background-color: #fde047; /* Yellow-300 */
-            color: #1e293b; /* Slate-800 */
+            background-color: #fde047;
+            color: #1e293b;
             border-radius: 2px;
             padding: 0 2px;
             margin: 0;
         }
 
         mark.active-match {
-            background-color: #4f46e5 !important; /* Indigo-600 */
+            background-color: #4f46e5 !important;
             color: white !important;
             border-radius: 4px;
             padding: 0 4px;
             box-shadow: 0 0 0 2px #e0e7ff;
         }
 
-        /* Search Controls Adjusted for Mobile Keyboard */
+        /* Search Controls Positioned at Bottom Center for Mobile */
         #search-controls {
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1100;
             width: 90%;
+            bottom: 20px; /* Hamesha bottom mein rahega */
         }
 
         @media (max-width: 768px) {
             #editor-mode .content-area {
                 padding-bottom: 100px;
             }
-            #search-controls {
-                bottom: auto;
-                top: 80px; 
+            /* Mobile par search input hamesha header mein rahega, hide nahi hoga */
+            #mobile-search-input {
+                display: block !important;
             }
         }
 
@@ -91,12 +92,15 @@
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-80 bg-white border-r border-slate-200 flex flex-col h-full z-50 shadow-2xl transition-transform -translate-x-full md:translate-x-0 md:relative md:flex shrink-0">
         <div class="p-5 border-b border-slate-50 space-y-4">
             <div class="flex justify-between items-center">
-                <h1 class="text-xl font-black text-slate-800 flex items-center gap-2 tracking-tighter">
-                    <div class="p-1.5 bg-indigo-600 rounded-lg text-white shadow-lg">
-                        <i data-lucide="sticky-note" class="w-5 h-5"></i>
-                    </div> 
-                    NOTES
-                </h1>
+                <div class="flex flex-col">
+                    <h1 class="text-xl font-black text-slate-800 flex items-center gap-2 tracking-tighter">
+                        <div class="p-1.5 bg-indigo-600 rounded-lg text-white shadow-lg">
+                            <i data-lucide="sticky-note" class="w-5 h-5"></i>
+                        </div> 
+                        NOTES
+                    </h1>
+                    <span class="text-[9px] font-bold text-indigo-500 tracking-[0.3em] ml-9 -mt-1">VERSION 2.6</span>
+                </div>
                 <div class="flex items-center gap-2">
                     <div id="note-count" class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">0</div>
                     <button onclick="toggleSidebar()" class="md:hidden text-slate-400 p-1">
@@ -207,7 +211,7 @@
             <p class="text-slate-400 text-xs md:text-2xl font-semibold max-w-xs">Apne vichar likhna shuru karein.</p>
         </div>
 
-        <!-- SEARCH CONTROLS -->
+        <!-- SEARCH CONTROLS (Ab mobile bottom center mein rahenge) -->
         <div id="search-controls" class="hidden">
             <div class="bg-slate-900/95 backdrop-blur-2xl text-white px-4 py-3 md:px-8 md:py-5 rounded-3xl shadow-2xl border border-white/10 flex items-center justify-between md:gap-10">
                 <div class="flex flex-col">
@@ -217,10 +221,10 @@
                     </span>
                 </div>
                 <div class="flex items-center gap-2 md:gap-4">
-                    <button onclick="prevMatch()" class="w-10 h-10 md:w-16 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center"><i data-lucide="chevron-left"></i></button>
-                    <button onclick="nextMatch()" class="w-10 h-10 md:w-16 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg"><i data-lucide="chevron-right"></i></button>
+                    <button onclick="prevMatch()" class="w-10 h-10 md:w-16 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center transition-colors active:bg-white/20"><i data-lucide="chevron-left"></i></button>
+                    <button onclick="nextMatch()" class="w-10 h-10 md:w-16 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-90"><i data-lucide="chevron-right"></i></button>
                 </div>
-                <button onclick="clearSearch()" class="p-2 ml-2 hover:text-red-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button onclick="clearSearch()" class="p-2 ml-2 hover:text-red-400 active:scale-110 transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
         </div>
     </main>
@@ -265,11 +269,11 @@
         function handleSearch(val, source) {
             globalSearchTerm = val;
             
-            // Sync current input value with the other one without re-rendering everything if not needed
+            // Input syncing
             if (source === 'mobile') {
                 const desktopInput = document.getElementById('desktop-search-input');
                 if (desktopInput) desktopInput.value = val;
-            } else {
+            } else if (source === 'desktop') {
                 const mobileInput = document.getElementById('mobile-search-input');
                 if (mobileInput) mobileInput.value = val;
             }
@@ -393,7 +397,7 @@
             if (matches.length > 0) {
                 searchControls.classList.remove('hidden');
                 totalMatchesEl.innerText = matches.length;
-                goToMatch(0);
+                goToMatch(matchIndex < matches.length ? matchIndex : 0);
             } else { searchControls.classList.add('hidden'); }
         }
 
@@ -420,6 +424,7 @@
             emptyState.classList.add('hidden');
             viewMode.classList.add('hidden');
             editorMode.classList.remove('hidden');
+            searchControls.classList.add('hidden');
             lucide.createIcons();
         }
 
@@ -431,6 +436,7 @@
             headerActions.innerHTML = `<button onclick="closeEditor()" class="p-2 text-slate-400"><i data-lucide="x"></i></button>`;
             viewMode.classList.add('hidden');
             editorMode.classList.remove('hidden');
+            searchControls.classList.add('hidden');
             lucide.createIcons();
         }
 
@@ -463,9 +469,16 @@
             editorMode.classList.add('hidden');
             emptyState.classList.remove('hidden');
             headerActions.innerHTML = "";
+            searchControls.classList.add('hidden');
         }
 
-        function clearSearch() { handleSearch("", 'manual'); }
+        function clearSearch() { 
+            const mInput = document.getElementById('mobile-search-input');
+            const dInput = document.getElementById('desktop-search-input');
+            if(mInput) mInput.value = "";
+            if(dInput) dInput.value = "";
+            handleSearch("", 'manual'); 
+        }
     </script>
 </body>
 </html>
