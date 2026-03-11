@@ -53,7 +53,6 @@
             border-radius: 4px;
             padding: 0 4px;
             box-shadow: 0 0 0 2px #e0e7ff;
-            /* Scale hata diya taaki layout na bigde */
         }
 
         /* Search Controls Adjusted for Mobile Keyboard */
@@ -69,7 +68,6 @@
             #editor-mode .content-area {
                 padding-bottom: 100px;
             }
-            /* Mobile search top position */
             #search-controls {
                 bottom: auto;
                 top: 80px; 
@@ -111,7 +109,8 @@
                 <i data-lucide="search" class="absolute left-3 top-2.5 text-slate-400 w-4 h-4"></i>
                 <input 
                     type="text" 
-                    oninput="handleSearch(this.value)"
+                    id="desktop-search-input"
+                    oninput="handleSearch(this.value, 'desktop')"
                     placeholder="Search notes..." 
                     class="search-input-field w-full pl-9 pr-3 py-2 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-400 outline-none transition-all text-sm font-bold shadow-inner" 
                 />
@@ -147,7 +146,7 @@
                 <input 
                     type="text" 
                     id="mobile-search-input"
-                    oninput="handleSearch(this.value)"
+                    oninput="handleSearch(this.value, 'mobile')"
                     placeholder="Search everything..." 
                     class="search-input-field w-full pl-9 pr-3 py-2 md:py-3 bg-slate-100/50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-400 outline-none transition-all text-xs md:text-sm font-bold" 
                 />
@@ -263,11 +262,18 @@
             overlay.classList.toggle('hidden');
         }
 
-        function handleSearch(val) {
+        function handleSearch(val, source) {
             globalSearchTerm = val;
-            document.querySelectorAll('.search-input-field').forEach(input => {
-                if (input.value !== val) input.value = val;
-            });
+            
+            // Sync current input value with the other one without re-rendering everything if not needed
+            if (source === 'mobile') {
+                const desktopInput = document.getElementById('desktop-search-input');
+                if (desktopInput) desktopInput.value = val;
+            } else {
+                const mobileInput = document.getElementById('mobile-search-input');
+                if (mobileInput) mobileInput.value = val;
+            }
+
             renderNotes();
             if (currentNoteId) updateDisplay();
         }
@@ -459,7 +465,7 @@
             headerActions.innerHTML = "";
         }
 
-        function clearSearch() { handleSearch(""); }
+        function clearSearch() { handleSearch("", 'manual'); }
     </script>
 </body>
 </html>
