@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notes App Simple</title>
+    <title>ZenNotes - Enhanced Mobile Search</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -15,13 +15,13 @@
         }
 
         .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
             background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #e2e8f0;
+            background: #cbd5e1;
             border-radius: 10px;
         }
 
@@ -33,127 +33,167 @@
             display: inline-block;
             border-radius: 4px;
         }
+
+        @media (max-width: 768px) {
+            .mobile-sidebar-active aside {
+                transform: translateX(0);
+            }
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-900 h-screen w-screen flex flex-col md:flex-row">
+<body class="bg-slate-100 text-slate-900 h-screen w-screen flex flex-col md:flex-row relative">
 
-    <!-- FIXED SIDEBAR -->
-    <aside class="hidden md:flex w-80 lg:w-96 bg-white border-r border-slate-200 flex-col h-full z-20 shadow-2xl shrink-0">
-        <div class="p-6 border-b border-slate-50 space-y-5">
+    <!-- MOBILE OVERLAY -->
+    <div id="mobile-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-80 bg-white border-r border-slate-200 flex flex-col h-full z-50 shadow-2xl transition-transform -translate-x-full md:translate-x-0 md:relative md:flex shrink-0">
+        <div class="p-5 border-b border-slate-50 space-y-4">
             <div class="flex justify-between items-center">
-                <h1 class="text-2xl font-black text-slate-800 flex items-center gap-2 tracking-tighter">
-                    <div class="p-2 bg-indigo-600 rounded-xl text-white shadow-lg">
-                        <i data-lucide="sticky-note"></i>
+                <h1 class="text-xl font-black text-slate-800 flex items-center gap-2 tracking-tighter">
+                    <div class="p-1.5 bg-indigo-600 rounded-lg text-white shadow-lg">
+                        <i data-lucide="sticky-note" class="w-5 h-5"></i>
                     </div> 
                     NOTES
                 </h1>
-                <div id="note-count" class="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest">0</div>
+                <div class="flex items-center gap-2">
+                    <div id="note-count" class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">0</div>
+                    <button onclick="toggleSidebar()" class="md:hidden text-slate-400 p-1">
+                        <i data-lucide="chevrons-left"></i>
+                    </button>
+                </div>
             </div>
             
-            <div class="relative group">
-                <i data-lucide="search" class="absolute left-4 top-3.5 text-slate-400 w-4 h-4"></i>
+            <!-- Desktop/Sidebar Search -->
+            <div class="relative group hidden md:block">
+                <i data-lucide="search" class="absolute left-3 top-2.5 text-slate-400 w-4 h-4"></i>
                 <input 
                     type="text" 
-                    id="search-input"
-                    placeholder="Shabd dhoondhein..." 
-                    class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-indigo-400 outline-none transition-all text-sm font-bold shadow-inner" 
+                    oninput="handleSearch(this.value)"
+                    placeholder="Search notes..." 
+                    class="search-input-field w-full pl-9 pr-3 py-2 bg-slate-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-400 outline-none transition-all text-sm font-bold shadow-inner" 
                 />
             </div>
 
             <button 
-                onclick="showEditor()"
-                class="w-full bg-slate-900 text-white py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all font-black text-sm active:scale-95 shadow-xl uppercase tracking-widest"
+                onclick="showEditor(); if(window.innerWidth < 768) toggleSidebar();"
+                class="w-full bg-slate-900 text-white py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all font-black text-xs active:scale-95 shadow-lg uppercase tracking-widest"
             >
-                <i data-lucide="plus" class="w-4 h-4"></i> NAYI NOTE
+                <i data-lucide="plus" class="w-4 h-4"></i> NEW NOTE
             </button>
         </div>
 
-        <div id="notes-list" class="overflow-y-auto flex-1 p-4 space-y-4 bg-slate-50/50 custom-scrollbar">
-            <!-- Notes items will be injected here -->
+        <!-- Sidebar Tab Switcher -->
+        <div class="flex border-b border-slate-50">
+            <button onclick="switchSidebarTab('main')" id="tab-main" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest border-b-2 border-indigo-600 text-indigo-600">My Notes</button>
+            <button onclick="switchSidebarTab('trash')" id="tab-trash" class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest border-b-2 border-transparent text-slate-400 hover:text-slate-600">Recycle Bin</button>
+        </div>
+
+        <div id="notes-list" class="overflow-y-auto flex-1 p-3 space-y-3 bg-slate-50/50 custom-scrollbar">
+            <!-- Notes items injected here -->
         </div>
     </aside>
 
     <!-- MAIN CONTENT AREA -->
-    <main id="main-content" class="flex-1 bg-white overflow-hidden flex flex-col relative">
-        <!-- View Mode (Default) -->
-        <div id="view-mode" class="flex-1 flex flex-col hidden overflow-hidden">
-            <div class="p-6 border-b border-slate-50 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-xl z-40">
-                <div class="flex items-center gap-3">
-                   <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                   <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Note Khuli Hai</span>
-                </div>
-                <button onclick="editCurrentNote()" class="px-6 py-2.5 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-indigo-600 transition-all shadow-lg active:scale-95 uppercase tracking-widest">Badlav Karein</button>
+    <main id="main-content" class="flex-1 bg-white overflow-hidden flex flex-col relative w-full">
+        
+        <!-- UNIFIED MOBILE HEADER (With Search) -->
+        <header class="p-3 md:p-6 border-b border-slate-50 bg-white/80 backdrop-blur-xl z-30 flex items-center gap-3">
+            <button onclick="toggleSidebar()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors md:hidden">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            
+            <!-- Mobile Search Bar (Upar Fix) -->
+            <div class="flex-1 relative group">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                <input 
+                    type="text" 
+                    id="mobile-search-input"
+                    oninput="handleSearch(this.value)"
+                    placeholder="Search everything..." 
+                    class="search-input-field w-full pl-9 pr-3 py-2 md:py-3 bg-slate-100/50 border-2 border-transparent rounded-xl focus:bg-white focus:border-indigo-400 outline-none transition-all text-xs md:text-sm font-bold" 
+                />
             </div>
-            <div id="scroll-container" class="flex-1 overflow-y-auto p-8 md:p-24 scroll-smooth pb-48 custom-scrollbar">
+
+            <!-- View/Edit Actions in Header -->
+            <div id="header-actions" class="flex items-center gap-2">
+                <!-- Action buttons will be dynamically shown here -->
+            </div>
+        </header>
+
+        <!-- View Mode Content -->
+        <div id="view-mode" class="flex-1 flex flex-col hidden overflow-hidden">
+            <div id="scroll-container" class="flex-1 overflow-y-auto p-6 md:p-20 scroll-smooth pb-40 custom-scrollbar">
                 <div class="max-w-4xl mx-auto">
-                    <h2 id="display-title" class="text-8xl font-black text-slate-900 leading-[1] mb-16 tracking-tighter"></h2>
-                    <div id="display-content" class="text-slate-600 text-4xl leading-[1.6] whitespace-pre-wrap border-t-8 border-white pt-16 font-medium"></div>
+                    <div class="flex items-center gap-2 mb-6">
+                        <div id="view-fav-indicator" class="hidden"><i data-lucide="star" class="w-4 h-4 text-amber-400 fill-amber-400"></i></div>
+                        <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                        <span class="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Viewing Note</span>
+                    </div>
+                    <h2 id="display-title" class="text-4xl md:text-7xl font-black text-slate-900 leading-tight mb-8 md:mb-16 tracking-tighter"></h2>
+                    <div id="display-content" class="text-slate-600 text-xl md:text-4xl leading-relaxed whitespace-pre-wrap border-t-4 md:border-t-8 border-slate-50 pt-8 md:pt-16 font-medium"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Editor Mode -->
+        <!-- Editor Mode Content -->
         <div id="editor-mode" class="flex-1 flex flex-col hidden overflow-hidden">
-            <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-white/50 backdrop-blur-xl z-40 sticky top-0">
-                <div class="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest">
-                    <i data-lucide="target" class="w-3 h-3"></i> <span id="editor-status">Nayi Note</span>
-                </div>
-                <button onclick="closeEditor()" class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-full text-slate-400 transition-all">
-                    <i data-lucide="x"></i>
-                </button>
-            </div>
-            <div class="flex-1 overflow-y-auto p-8 md:p-24 scroll-smooth pb-48 custom-scrollbar">
+            <div class="flex-1 overflow-y-auto p-6 md:p-20 scroll-smooth pb-40 custom-scrollbar">
                 <div class="max-w-4xl mx-auto">
+                    <div class="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest w-max mb-8">
+                        <i data-lucide="target" class="w-3 h-3"></i> <span id="editor-status">Creating</span>
+                    </div>
                     <input 
                         type="text" 
                         id="note-title-input"
-                        placeholder="Headline yahan..." 
-                        class="w-full text-7xl font-black border-none focus:ring-0 placeholder-slate-100 text-slate-900 bg-transparent outline-none tracking-tighter mb-10" 
+                        placeholder="Untitled Headline" 
+                        class="w-full text-4xl md:text-7xl font-black border-none focus:ring-0 placeholder-slate-200 text-slate-900 bg-transparent outline-none tracking-tighter mb-6 md:mb-10" 
                     />
                     <textarea 
                         id="note-content-input"
-                        placeholder="Likhein..." 
-                        class="w-full min-h-[600px] border-none focus:ring-0 text-3xl text-slate-700 resize-none placeholder-slate-100 leading-relaxed bg-transparent outline-none font-medium"
+                        placeholder="Start typing your thoughts here..." 
+                        class="w-full min-h-[300px] md:min-h-[500px] border-none focus:ring-0 text-xl md:text-3xl text-slate-700 resize-none placeholder-slate-100 leading-relaxed bg-transparent outline-none font-medium"
                     ></textarea>
                 </div>
             </div>
-            <div class="p-8 bg-white border-t border-slate-50 flex justify-end items-center gap-6 z-40">
-                <button onclick="saveNote()" class="flex items-center gap-4 px-14 py-6 bg-slate-900 text-white rounded-[32px] font-black shadow-2xl hover:bg-indigo-600 transition-all text-xl active:scale-95 uppercase tracking-widest">
-                    <i data-lucide="save"></i> SAVE KAREIN
+            <!-- Save Button Floating for Mobile/Bottom for Desktop -->
+            <div class="p-4 md:p-8 bg-white/80 backdrop-blur-md border-t border-slate-50 flex justify-end items-center z-30">
+                <button onclick="saveNote()" class="w-full md:w-auto flex items-center justify-center gap-3 px-10 py-4 md:py-5 bg-slate-900 text-white rounded-2xl md:rounded-[24px] font-black shadow-xl hover:bg-indigo-600 transition-all text-sm md:text-lg active:scale-95 uppercase tracking-widest">
+                    <i data-lucide="save" class="w-5 h-5"></i> SAVE
                 </button>
             </div>
         </div>
 
         <!-- Empty State -->
-        <div id="empty-state" class="h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50/40">
-            <div class="w-64 h-64 bg-white rounded-[80px] shadow-2xl flex items-center justify-center text-indigo-100 mb-12 animate-pulse">
-                <i data-lucide="sticky-note" style="width: 100px; height: 100px;"></i>
+        <div id="empty-state" class="h-full flex flex-col items-center justify-center p-8 text-center bg-slate-50/40">
+            <div class="w-32 h-32 md:w-64 md:h-64 bg-white rounded-[40px] md:rounded-[80px] shadow-xl flex items-center justify-center text-indigo-100 mb-8 animate-pulse">
+                <i data-lucide="sticky-note" class="w-16 h-16 md:w-24 md:h-24"></i>
             </div>
-            <h2 class="text-6xl font-black text-slate-800 mb-6 tracking-tighter">Ek Note Chunien</h2>
-            <p class="text-slate-400 text-2xl font-semibold max-w-sm">Search bar se shabd dhoondhein aur scroll karein.</p>
+            <h2 class="text-2xl md:text-6xl font-black text-slate-800 mb-4 tracking-tighter">Select a Note</h2>
+            <p class="text-slate-400 text-xs md:text-2xl font-semibold max-w-xs">Use the search above or sidebar to find your ideas.</p>
         </div>
 
-        <!-- FIXED SEARCH CONTROLS -->
-        <div id="search-controls" class="fixed bottom-12 left-1/2 md:left-[calc(50%+192px)] -translate-x-1/2 z-[100] hidden">
-            <div class="bg-slate-900/90 backdrop-blur-2xl text-white px-8 py-5 rounded-[45px] shadow-2xl border border-white/20 flex items-center gap-10 scale-110">
+        <!-- SEARCH CONTROLS -->
+        <div id="search-controls" class="fixed bottom-6 md:bottom-12 left-1/2 -translate-x-1/2 z-[100] hidden w-[90%] md:w-auto">
+            <div class="bg-slate-900/95 backdrop-blur-2xl text-white px-4 py-3 md:px-8 md:py-5 rounded-3xl md:rounded-[45px] shadow-2xl border border-white/10 flex items-center justify-between md:gap-10 scale-100 md:scale-110">
                 <div class="flex flex-col">
-                    <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1.5">Mil Gaye</span>
-                    <span class="text-3xl font-black tabular-nums leading-none">
-                        <span id="current-match">1</span> <span class="text-slate-500 text-sm font-medium">/</span> <span id="total-matches">0</span>
+                    <span class="text-[8px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1 md:mb-1.5">Matches</span>
+                    <span class="text-lg md:text-3xl font-black tabular-nums leading-none">
+                        <span id="current-match">1</span> <span class="text-slate-500 text-xs md:text-sm font-medium">/</span> <span id="total-matches">0</span>
                     </span>
                 </div>
-                <div class="h-12 w-[1.5px] bg-white/10"></div>
-                <div class="flex items-center gap-4">
-                    <button onclick="prevMatch()" class="w-16 h-16 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center transition-all active:scale-90">
-                        <i data-lucide="chevron-left" class="w-8 h-8"></i>
+                <div class="h-8 md:h-12 w-[1px] bg-white/10 mx-2 md:mx-0"></div>
+                <div class="flex items-center gap-2 md:gap-4">
+                    <button onclick="prevMatch()" class="w-10 h-10 md:w-16 md:h-16 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center active:scale-90 transition-all">
+                        <i data-lucide="chevron-left" class="w-5 h-5 md:w-8 md:h-8"></i>
                     </button>
-                    <button onclick="nextMatch()" class="w-16 h-16 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-lg">
-                        <i data-lucide="chevron-right" class="w-8 h-8"></i>
+                    <button onclick="nextMatch()" class="w-10 h-10 md:w-16 md:h-16 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center active:scale-90 transition-all shadow-lg">
+                        <i data-lucide="chevron-right" class="w-5 h-5 md:w-8 md:h-8"></i>
                     </button>
                 </div>
-                <div class="h-12 w-[1.5px] bg-white/10"></div>
-                <button onclick="clearSearch()" class="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-all">
-                    <i data-lucide="x" class="w-5 h-5"></i>
+                <div class="h-8 md:h-12 w-[1px] bg-white/10 mx-2 md:mx-0"></div>
+                <button onclick="clearSearch()" class="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center bg-white/5 hover:bg-red-500/20 rounded-full transition-all">
+                    <i data-lucide="x" class="w-4 h-4 md:w-5 md:h-5"></i>
                 </button>
             </div>
         </div>
@@ -161,15 +201,18 @@
 
     <script>
         // State Management
-        let notes = JSON.parse(localStorage.getItem('my-local-notes-v5')) || [
-            { id: 1, title: 'Namaste!', content: 'Ab yeh pure simple HTML aur JS par chal raha hai.' }
+        let notes = JSON.parse(localStorage.getItem('my-local-notes-v4')) || [
+            { id: 1, title: 'Welcome!', content: 'Search is now conveniently at the top of your screen.', favorite: false, deleted: false }
         ];
         let currentNoteId = null;
+        let sidebarTab = 'main';
         let matchIndex = 0;
         let matches = [];
-        let searchTerm = "";
+        let globalSearchTerm = "";
 
         // Elements
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('mobile-overlay');
         const notesList = document.getElementById('notes-list');
         const emptyState = document.getElementById('empty-state');
         const viewMode = document.getElementById('view-mode');
@@ -178,42 +221,105 @@
         const displayContent = document.getElementById('display-content');
         const titleInput = document.getElementById('note-title-input');
         const contentInput = document.getElementById('note-content-input');
-        const searchInput = document.getElementById('search-input');
         const searchControls = document.getElementById('search-controls');
         const currentMatchEl = document.getElementById('current-match');
         const totalMatchesEl = document.getElementById('total-matches');
+        const viewFavIndicator = document.getElementById('view-fav-indicator');
+        const headerActions = document.getElementById('header-actions');
 
         // Init
         window.addEventListener('load', () => {
             lucide.createIcons();
             renderNotes();
-            
-            // ResizeObserver Fix
-            window.addEventListener('error', (e) => {
-                if (e.message.includes('ResizeObserver')) {
-                    e.stopImmediatePropagation();
-                }
-            });
         });
 
-        function renderNotes() {
-            const term = searchInput.value.toLowerCase().trim();
-            const filtered = notes.filter(n => 
-                n.title.toLowerCase().includes(term) || n.content.toLowerCase().includes(term)
-            );
+        function toggleSidebar() {
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
 
-            document.getElementById('note-count').innerText = notes.length;
+        function handleSearch(val) {
+            globalSearchTerm = val;
+            // Sync all search inputs
+            document.querySelectorAll('.search-input-field').forEach(input => {
+                if (input.value !== val) input.value = val;
+            });
+            renderNotes();
+            if (currentNoteId) updateDisplay();
+        }
+
+        function switchSidebarTab(tab) {
+            sidebarTab = tab;
+            document.getElementById('tab-main').className = `flex-1 py-3 text-[10px] font-black uppercase tracking-widest border-b-2 ${tab === 'main' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`;
+            document.getElementById('tab-trash').className = `flex-1 py-3 text-[10px] font-black uppercase tracking-widest border-b-2 ${tab === 'trash' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`;
+            renderNotes();
+        }
+
+        function renderNotes() {
+            const term = globalSearchTerm.toLowerCase().trim();
+            let filtered = notes.filter(n => {
+                const matchesSearch = n.title.toLowerCase().includes(term) || n.content.toLowerCase().includes(term);
+                const matchesTab = sidebarTab === 'trash' ? n.deleted === true : n.deleted !== true;
+                return matchesSearch && matchesTab;
+            });
+
+            if (sidebarTab === 'main') {
+                filtered.sort((a, b) => (b.favorite === a.favorite) ? 0 : b.favorite ? 1 : -1);
+            }
+
+            document.getElementById('note-count').innerText = notes.filter(n => !n.deleted).length;
+            
+            if (filtered.length === 0) {
+                notesList.innerHTML = `<div class="p-8 text-center opacity-30 font-black text-[10px] uppercase tracking-widest text-slate-400 mt-10">No Notes</div>`;
+                return;
+            }
+
             notesList.innerHTML = filtered.map(n => `
-                <div onclick="selectNote(${n.id})" 
-                     class="p-5 rounded-3xl cursor-pointer transition-all border-2 bg-white ${currentNoteId === n.id ? 'border-indigo-500 shadow-xl -translate-y-1' : 'border-transparent hover:border-slate-200 hover:shadow-lg'}">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-black text-sm text-slate-800 line-clamp-1">${n.title}</h3>
-                        <button onclick="event.stopPropagation(); deleteNote(${n.id})" class="text-slate-200 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                <div onclick="selectNote(${n.id}); if(window.innerWidth < 768) toggleSidebar();" 
+                     class="group p-4 rounded-2xl cursor-pointer transition-all border-2 ${n.favorite && !n.deleted ? 'bg-indigo-50/50 border-indigo-100' : 'bg-white border-transparent'} ${currentNoteId === n.id ? '!border-indigo-500 shadow-md' : 'hover:border-slate-100'}">
+                    <div class="flex justify-between items-start mb-1">
+                        <div class="flex items-center gap-1.5 overflow-hidden">
+                            ${n.favorite && !n.deleted ? '<i data-lucide="star" class="w-3 h-3 text-amber-400 fill-amber-400 shrink-0"></i>' : ''}
+                            <h3 class="font-black text-xs text-slate-800 line-clamp-1">${n.title}</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${sidebarTab === 'main' ? `
+                                <button onclick="event.stopPropagation(); toggleFavorite(${n.id})" class="text-slate-300 hover:text-amber-400">
+                                    <i data-lucide="star" class="w-3.5 h-3.5 ${n.favorite ? 'fill-amber-400 text-amber-400' : ''}"></i>
+                                </button>
+                                <button onclick="event.stopPropagation(); moveToTrash(${n.id})" class="text-slate-200 hover:text-red-500">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            ` : `
+                                <button onclick="event.stopPropagation(); restoreNote(${n.id})" class="text-slate-300 hover:text-green-500">
+                                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                                </button>
+                            `}
+                        </div>
                     </div>
-                    <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">${n.content}</p>
                 </div>
             `).join('');
             lucide.createIcons();
+        }
+
+        function toggleFavorite(id) {
+            notes = notes.map(n => n.id === id ? { ...n, favorite: !n.favorite } : n);
+            saveToStorage();
+            renderNotes();
+            if (currentNoteId === id) updateDisplay();
+        }
+
+        function moveToTrash(id) {
+            notes = notes.map(n => n.id === id ? { ...n, deleted: true, favorite: false } : n);
+            saveToStorage();
+            if (currentNoteId === id) resetUI();
+            renderNotes();
+        }
+
+        function restoreNote(id) {
+            notes = notes.map(n => n.id === id ? { ...n, deleted: false } : n);
+            saveToStorage();
+            renderNotes();
         }
 
         function selectNote(id) {
@@ -224,37 +330,45 @@
             editorMode.classList.add('hidden');
             viewMode.classList.remove('hidden');
             
+            // Dynamic Header Buttons
+            if (note.deleted) {
+                headerActions.innerHTML = `<button onclick="restoreNote(${id}); selectNote(${id})" class="p-2 bg-green-50 text-green-600 rounded-lg"><i data-lucide="rotate-ccw" class="w-5 h-5"></i></button>`;
+            } else {
+                headerActions.innerHTML = `<button onclick="editCurrentNote()" class="p-2 bg-slate-900 text-white rounded-lg"><i data-lucide="edit-3" class="w-4 h-4 md:w-5 md:h-5"></i></button>`;
+            }
+
             updateDisplay();
             renderNotes();
+            lucide.createIcons();
         }
 
         function updateDisplay() {
             const note = notes.find(n => n.id === currentNoteId);
             if (!note) return;
 
-            const term = searchInput.value;
-            displayTitle.innerHTML = smartHighlight(note.title, term);
-            displayContent.innerHTML = smartHighlight(note.content, term);
+            displayTitle.innerHTML = smartHighlight(note.title, globalSearchTerm);
+            displayContent.innerHTML = smartHighlight(note.content, globalSearchTerm);
             
+            if(note.favorite && !note.deleted) viewFavIndicator.classList.remove('hidden');
+            else viewFavIndicator.classList.add('hidden');
+
             updateSearchMatches();
         }
 
         function smartHighlight(text, highlight) {
             if (!highlight) return text;
             const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-            return text.replace(regex, `<mark class="rounded-lg px-1.5 font-black inline-block bg-yellow-200 text-slate-800">$1</mark>`);
+            return text.replace(regex, `<mark class="rounded px-0.5 bg-yellow-200 text-slate-800">$1</mark>`);
         }
 
         function updateSearchMatches() {
-            const term = searchInput.value.trim();
+            const term = globalSearchTerm.trim();
             if (!term) {
                 searchControls.classList.add('hidden');
                 return;
             }
-
             const allMarks = document.querySelectorAll('#view-mode mark');
             matches = Array.from(allMarks);
-            
             if (matches.length > 0) {
                 searchControls.classList.remove('hidden');
                 totalMatchesEl.innerText = matches.length;
@@ -267,7 +381,6 @@
         function goToMatch(index) {
             matches.forEach(m => m.classList.remove('active-match'));
             matchIndex = (index + matches.length) % matches.length;
-            
             const active = matches[matchIndex];
             if (active) {
                 active.classList.add('active-match');
@@ -283,70 +396,68 @@
             currentNoteId = null;
             titleInput.value = "";
             contentInput.value = "";
-            document.getElementById('editor-status').innerText = "Nayi Note";
+            document.getElementById('editor-status').innerText = "Creating";
+            headerActions.innerHTML = `<button onclick="closeEditor()" class="p-2 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>`;
             
             emptyState.classList.add('hidden');
             viewMode.classList.add('hidden');
             editorMode.classList.remove('hidden');
+            lucide.createIcons();
         }
 
         function editCurrentNote() {
             const note = notes.find(n => n.id === currentNoteId);
             titleInput.value = note.title;
             contentInput.value = note.content;
-            document.getElementById('editor-status').innerText = "Editing Mode";
+            document.getElementById('editor-status').innerText = "Editing";
+            headerActions.innerHTML = `<button onclick="closeEditor()" class="p-2 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>`;
             
             viewMode.classList.add('hidden');
             editorMode.classList.remove('hidden');
+            lucide.createIcons();
         }
 
         function saveNote() {
-            const title = titleInput.value.trim() || "Bina Title Ki Note";
+            const title = titleInput.value.trim() || "Untitled Note";
             const content = contentInput.value.trim();
 
             if (currentNoteId) {
                 notes = notes.map(n => n.id === currentNoteId ? {...n, title, content} : n);
             } else {
-                const newNote = { id: Date.now(), title, content };
+                const newNote = { id: Date.now(), title, content, favorite: false, deleted: false };
                 notes.unshift(newNote);
                 currentNoteId = newNote.id;
             }
 
-            localStorage.setItem('my-local-notes-v5', JSON.stringify(notes));
+            saveToStorage();
             closeEditor();
             selectNote(currentNoteId);
         }
 
-        function deleteNote(id) {
-            notes = notes.filter(n => n.id !== id);
-            localStorage.setItem('my-local-notes-v5', JSON.stringify(notes));
-            if (currentNoteId === id) {
-                currentNoteId = null;
-                viewMode.classList.add('hidden');
-                emptyState.classList.remove('hidden');
-            }
-            renderNotes();
+        function saveToStorage() {
+            localStorage.setItem('my-local-notes-v4', JSON.stringify(notes));
         }
 
         function closeEditor() {
             editorMode.classList.add('hidden');
             if (currentNoteId) {
-                viewMode.classList.remove('hidden');
+                selectNote(currentNoteId);
             } else {
-                emptyState.classList.remove('hidden');
+                resetUI();
             }
         }
 
-        function clearSearch() {
-            searchInput.value = "";
-            updateDisplay();
-            renderNotes();
+        function resetUI() {
+            currentNoteId = null;
+            viewMode.classList.add('hidden');
+            editorMode.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            headerActions.innerHTML = "";
         }
 
-        searchInput.addEventListener('input', () => {
-            renderNotes();
-            if (currentNoteId) updateDisplay();
-        });
+        function clearSearch() {
+            handleSearch("");
+        }
     </script>
 </body>
 </html>
