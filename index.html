@@ -61,17 +61,19 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 1100;
-            width: 90%;
-            bottom: 20px; /* Hamesha bottom mein rahega */
+            width: 92%;
+            bottom: 20px;
         }
 
         @media (max-width: 768px) {
             #editor-mode .content-area {
                 padding-bottom: 100px;
             }
-            /* Mobile par search input hamesha header mein rahega, hide nahi hoga */
-            #mobile-search-input {
-                display: block !important;
+            /* Mobile header elements remain visible always */
+            #mobile-header-elements {
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
             }
         }
 
@@ -99,7 +101,7 @@
                         </div> 
                         NOTES
                     </h1>
-                    <span class="text-[9px] font-bold text-indigo-500 tracking-[0.3em] ml-9 -mt-1">VERSION 2.6</span>
+                    <span class="text-[9px] font-bold text-indigo-500 tracking-[0.3em] ml-9 -mt-1">VERSION 2.7</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <div id="note-count" class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">0</div>
@@ -140,7 +142,7 @@
     <main id="main-content" class="flex-1 bg-white overflow-hidden flex flex-col relative w-full">
         
         <!-- MOBILE HEADER -->
-        <header class="p-3 md:p-6 border-b border-slate-50 bg-white/80 backdrop-blur-xl z-30 flex items-center gap-3">
+        <header id="mobile-header-elements" class="p-3 md:p-6 border-b border-slate-50 bg-white/80 backdrop-blur-xl z-30 flex items-center gap-3">
             <button onclick="toggleSidebar()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors md:hidden">
                 <i data-lucide="menu" class="w-5 h-5"></i>
             </button>
@@ -211,7 +213,7 @@
             <p class="text-slate-400 text-xs md:text-2xl font-semibold max-w-xs">Apne vichar likhna shuru karein.</p>
         </div>
 
-        <!-- SEARCH CONTROLS (Ab mobile bottom center mein rahenge) -->
+        <!-- SEARCH CONTROLS -->
         <div id="search-controls" class="hidden">
             <div class="bg-slate-900/95 backdrop-blur-2xl text-white px-4 py-3 md:px-8 md:py-5 rounded-3xl shadow-2xl border border-white/10 flex items-center justify-between md:gap-10">
                 <div class="flex flex-col">
@@ -269,7 +271,6 @@
         function handleSearch(val, source) {
             globalSearchTerm = val;
             
-            // Input syncing
             if (source === 'mobile') {
                 const desktopInput = document.getElementById('desktop-search-input');
                 if (desktopInput) desktopInput.value = val;
@@ -392,16 +393,22 @@
 
         function updateSearchMatches() {
             const term = globalSearchTerm.trim();
-            if (!term) { searchControls.classList.add('hidden'); return; }
+            if (!term) { 
+                searchControls.classList.add('hidden'); 
+                return; 
+            }
             matches = Array.from(document.querySelectorAll('#view-mode mark'));
             if (matches.length > 0) {
                 searchControls.classList.remove('hidden');
                 totalMatchesEl.innerText = matches.length;
                 goToMatch(matchIndex < matches.length ? matchIndex : 0);
-            } else { searchControls.classList.add('hidden'); }
+            } else { 
+                searchControls.classList.add('hidden'); 
+            }
         }
 
         function goToMatch(index) {
+            if (matches.length === 0) return;
             matches.forEach(m => m.classList.remove('active-match'));
             matchIndex = (index + matches.length) % matches.length;
             const active = matches[matchIndex];
