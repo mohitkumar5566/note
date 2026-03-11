@@ -38,18 +38,48 @@
             z-index: 1000;
         }
 
+        /* Fixed Search Highlighting (No jumping or scaling) */
+        mark.search-highlight {
+            background-color: #fde047; /* Yellow-300 */
+            color: #1e293b; /* Slate-800 */
+            border-radius: 2px;
+            padding: 0 2px;
+            margin: 0;
+        }
+
         mark.active-match {
-            background-color: #4f46e5 !important;
+            background-color: #4f46e5 !important; /* Indigo-600 */
             color: white !important;
-            box-shadow: 0 0 0 4px #e0e7ff;
-            transform: scale(1.1);
-            display: inline-block;
             border-radius: 4px;
+            padding: 0 4px;
+            box-shadow: 0 0 0 2px #e0e7ff;
+            /* Scale hata diya taaki layout na bigde */
+        }
+
+        /* Search Controls Adjusted for Mobile Keyboard */
+        #search-controls {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1100;
+            width: 90%;
         }
 
         @media (max-width: 768px) {
             #editor-mode .content-area {
-                padding-bottom: 100px; /* Space for fixed button */
+                padding-bottom: 100px;
+            }
+            /* Mobile search top position */
+            #search-controls {
+                bottom: auto;
+                top: 80px; 
+            }
+        }
+
+        @media (min-width: 769px) {
+            #search-controls {
+                bottom: 3rem;
+                width: auto;
             }
         }
     </style>
@@ -162,7 +192,6 @@
                 </div>
             </div>
             
-            <!-- Save Button Bar (Always visible in editor) -->
             <div class="mobile-save-bar md:relative md:bg-white/80 md:backdrop-blur-md md:border-t md:p-8 flex justify-end">
                 <button onclick="saveNote()" class="w-full md:w-auto flex items-center justify-center gap-3 px-10 py-4 bg-slate-900 text-white rounded-2xl font-black shadow-xl hover:bg-indigo-600 transition-all text-sm md:text-lg active:scale-95 uppercase tracking-widest">
                     <i data-lucide="save" class="w-5 h-5"></i> SAVE NOTE
@@ -180,7 +209,7 @@
         </div>
 
         <!-- SEARCH CONTROLS -->
-        <div id="search-controls" class="fixed bottom-24 md:bottom-12 left-1/2 -translate-x-1/2 z-[1100] hidden w-[90%] md:w-auto">
+        <div id="search-controls" class="hidden">
             <div class="bg-slate-900/95 backdrop-blur-2xl text-white px-4 py-3 md:px-8 md:py-5 rounded-3xl shadow-2xl border border-white/10 flex items-center justify-between md:gap-10">
                 <div class="flex flex-col">
                     <span class="text-[8px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Matches</span>
@@ -200,7 +229,7 @@
     <script>
         const STORAGE_KEY = 'my-local-notes-v4';
         let notes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
-            { id: 1, title: 'Welcome!', content: 'Ab save button hamesha niche dikhega jab aap kuch naya likhenge.', favorite: false, deleted: false }
+            { id: 1, title: 'Welcome!', content: 'Search karke dekhiye, ab layout bilkul sahi rahega.', favorite: false, deleted: false }
         ];
         
         let currentNoteId = null;
@@ -348,7 +377,7 @@
         function smartHighlight(text, highlight) {
             if (!highlight) return text;
             const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-            return text.replace(regex, `<mark class="rounded px-0.5 bg-yellow-200 text-slate-800">$1</mark>`);
+            return text.replace(regex, `<mark class="search-highlight">$1</mark>`);
         }
 
         function updateSearchMatches() {
