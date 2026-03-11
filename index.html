@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes App Simple</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+
+        mark.active-match {
+            background-color: #4f46e5 !important;
+            color: white !important;
+            box-shadow: 0 0 0 4px #e0e7ff;
+            transform: scale(1.1);
+            display: inline-block;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 h-screen w-screen flex flex-col md:flex-row">
+
+    <!-- FIXED SIDEBAR -->
+    <aside class="hidden md:flex w-80 lg:w-96 bg-white border-r border-slate-200 flex-col h-full z-20 shadow-2xl shrink-0">
+        <div class="p-6 border-b border-slate-50 space-y-5">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-black text-slate-800 flex items-center gap-2 tracking-tighter">
+                    <div class="p-2 bg-indigo-600 rounded-xl text-white shadow-lg">
+                        <i data-lucide="sticky-note"></i>
+                    </div> 
+                    NOTES
+                </h1>
+                <div id="note-count" class="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest">0</div>
+            </div>
+            
+            <div class="relative group">
+                <i data-lucide="search" class="absolute left-4 top-3.5 text-slate-400 w-4 h-4"></i>
+                <input 
+                    type="text" 
+                    id="search-input"
+                    placeholder="Shabd dhoondhein..." 
+                    class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-indigo-400 outline-none transition-all text-sm font-bold shadow-inner" 
+                />
+            </div>
+
+            <button 
+                onclick="showEditor()"
+                class="w-full bg-slate-900 text-white py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all font-black text-sm active:scale-95 shadow-xl uppercase tracking-widest"
+            >
+                <i data-lucide="plus" class="w-4 h-4"></i> NAYI NOTE
+            </button>
+        </div>
+
+        <div id="notes-list" class="overflow-y-auto flex-1 p-4 space-y-4 bg-slate-50/50 custom-scrollbar">
+            <!-- Notes items will be injected here -->
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main id="main-content" class="flex-1 bg-white overflow-hidden flex flex-col relative">
+        <!-- View Mode (Default) -->
+        <div id="view-mode" class="flex-1 flex flex-col hidden overflow-hidden">
+            <div class="p-6 border-b border-slate-50 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-xl z-40">
+                <div class="flex items-center gap-3">
+                   <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                   <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Note Khuli Hai</span>
+                </div>
+                <button onclick="editCurrentNote()" class="px-6 py-2.5 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-indigo-600 transition-all shadow-lg active:scale-95 uppercase tracking-widest">Badlav Karein</button>
+            </div>
+            <div id="scroll-container" class="flex-1 overflow-y-auto p-8 md:p-24 scroll-smooth pb-48 custom-scrollbar">
+                <div class="max-w-4xl mx-auto">
+                    <h2 id="display-title" class="text-8xl font-black text-slate-900 leading-[1] mb-16 tracking-tighter"></h2>
+                    <div id="display-content" class="text-slate-600 text-4xl leading-[1.6] whitespace-pre-wrap border-t-8 border-white pt-16 font-medium"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Editor Mode -->
+        <div id="editor-mode" class="flex-1 flex flex-col hidden overflow-hidden">
+            <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-white/50 backdrop-blur-xl z-40 sticky top-0">
+                <div class="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                    <i data-lucide="target" class="w-3 h-3"></i> <span id="editor-status">Nayi Note</span>
+                </div>
+                <button onclick="closeEditor()" class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-full text-slate-400 transition-all">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-8 md:p-24 scroll-smooth pb-48 custom-scrollbar">
+                <div class="max-w-4xl mx-auto">
+                    <input 
+                        type="text" 
+                        id="note-title-input"
+                        placeholder="Headline yahan..." 
+                        class="w-full text-7xl font-black border-none focus:ring-0 placeholder-slate-100 text-slate-900 bg-transparent outline-none tracking-tighter mb-10" 
+                    />
+                    <textarea 
+                        id="note-content-input"
+                        placeholder="Likhein..." 
+                        class="w-full min-h-[600px] border-none focus:ring-0 text-3xl text-slate-700 resize-none placeholder-slate-100 leading-relaxed bg-transparent outline-none font-medium"
+                    ></textarea>
+                </div>
+            </div>
+            <div class="p-8 bg-white border-t border-slate-50 flex justify-end items-center gap-6 z-40">
+                <button onclick="saveNote()" class="flex items-center gap-4 px-14 py-6 bg-slate-900 text-white rounded-[32px] font-black shadow-2xl hover:bg-indigo-600 transition-all text-xl active:scale-95 uppercase tracking-widest">
+                    <i data-lucide="save"></i> SAVE KAREIN
+                </button>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="h-full flex flex-col items-center justify-center p-12 text-center bg-slate-50/40">
+            <div class="w-64 h-64 bg-white rounded-[80px] shadow-2xl flex items-center justify-center text-indigo-100 mb-12 animate-pulse">
+                <i data-lucide="sticky-note" style="width: 100px; height: 100px;"></i>
+            </div>
+            <h2 class="text-6xl font-black text-slate-800 mb-6 tracking-tighter">Ek Note Chunien</h2>
+            <p class="text-slate-400 text-2xl font-semibold max-w-sm">Search bar se shabd dhoondhein aur scroll karein.</p>
+        </div>
+
+        <!-- FIXED SEARCH CONTROLS -->
+        <div id="search-controls" class="fixed bottom-12 left-1/2 md:left-[calc(50%+192px)] -translate-x-1/2 z-[100] hidden">
+            <div class="bg-slate-900/90 backdrop-blur-2xl text-white px-8 py-5 rounded-[45px] shadow-2xl border border-white/20 flex items-center gap-10 scale-110">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1.5">Mil Gaye</span>
+                    <span class="text-3xl font-black tabular-nums leading-none">
+                        <span id="current-match">1</span> <span class="text-slate-500 text-sm font-medium">/</span> <span id="total-matches">0</span>
+                    </span>
+                </div>
+                <div class="h-12 w-[1.5px] bg-white/10"></div>
+                <div class="flex items-center gap-4">
+                    <button onclick="prevMatch()" class="w-16 h-16 bg-white/5 hover:bg-white/10 rounded-full flex items-center justify-center transition-all active:scale-90">
+                        <i data-lucide="chevron-left" class="w-8 h-8"></i>
+                    </button>
+                    <button onclick="nextMatch()" class="w-16 h-16 bg-indigo-600 hover:bg-indigo-500 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-lg">
+                        <i data-lucide="chevron-right" class="w-8 h-8"></i>
+                    </button>
+                </div>
+                <div class="h-12 w-[1.5px] bg-white/10"></div>
+                <button onclick="clearSearch()" class="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // State Management
+        let notes = JSON.parse(localStorage.getItem('my-local-notes-v5')) || [
+            { id: 1, title: 'Namaste!', content: 'Ab yeh pure simple HTML aur JS par chal raha hai.' }
+        ];
+        let currentNoteId = null;
+        let matchIndex = 0;
+        let matches = [];
+        let searchTerm = "";
+
+        // Elements
+        const notesList = document.getElementById('notes-list');
+        const emptyState = document.getElementById('empty-state');
+        const viewMode = document.getElementById('view-mode');
+        const editorMode = document.getElementById('editor-mode');
+        const displayTitle = document.getElementById('display-title');
+        const displayContent = document.getElementById('display-content');
+        const titleInput = document.getElementById('note-title-input');
+        const contentInput = document.getElementById('note-content-input');
+        const searchInput = document.getElementById('search-input');
+        const searchControls = document.getElementById('search-controls');
+        const currentMatchEl = document.getElementById('current-match');
+        const totalMatchesEl = document.getElementById('total-matches');
+
+        // Init
+        window.addEventListener('load', () => {
+            lucide.createIcons();
+            renderNotes();
+            
+            // ResizeObserver Fix
+            window.addEventListener('error', (e) => {
+                if (e.message.includes('ResizeObserver')) {
+                    e.stopImmediatePropagation();
+                }
+            });
+        });
+
+        function renderNotes() {
+            const term = searchInput.value.toLowerCase().trim();
+            const filtered = notes.filter(n => 
+                n.title.toLowerCase().includes(term) || n.content.toLowerCase().includes(term)
+            );
+
+            document.getElementById('note-count').innerText = notes.length;
+            notesList.innerHTML = filtered.map(n => `
+                <div onclick="selectNote(${n.id})" 
+                     class="p-5 rounded-3xl cursor-pointer transition-all border-2 bg-white ${currentNoteId === n.id ? 'border-indigo-500 shadow-xl -translate-y-1' : 'border-transparent hover:border-slate-200 hover:shadow-lg'}">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-black text-sm text-slate-800 line-clamp-1">${n.title}</h3>
+                        <button onclick="event.stopPropagation(); deleteNote(${n.id})" class="text-slate-200 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                    <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">${n.content}</p>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function selectNote(id) {
+            currentNoteId = id;
+            const note = notes.find(n => n.id === id);
+            
+            emptyState.classList.add('hidden');
+            editorMode.classList.add('hidden');
+            viewMode.classList.remove('hidden');
+            
+            updateDisplay();
+            renderNotes();
+        }
+
+        function updateDisplay() {
+            const note = notes.find(n => n.id === currentNoteId);
+            if (!note) return;
+
+            const term = searchInput.value;
+            displayTitle.innerHTML = smartHighlight(note.title, term);
+            displayContent.innerHTML = smartHighlight(note.content, term);
+            
+            updateSearchMatches();
+        }
+
+        function smartHighlight(text, highlight) {
+            if (!highlight) return text;
+            const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, `<mark class="rounded-lg px-1.5 font-black inline-block bg-yellow-200 text-slate-800">$1</mark>`);
+        }
+
+        function updateSearchMatches() {
+            const term = searchInput.value.trim();
+            if (!term) {
+                searchControls.classList.add('hidden');
+                return;
+            }
+
+            const allMarks = document.querySelectorAll('#view-mode mark');
+            matches = Array.from(allMarks);
+            
+            if (matches.length > 0) {
+                searchControls.classList.remove('hidden');
+                totalMatchesEl.innerText = matches.length;
+                goToMatch(0);
+            } else {
+                searchControls.classList.add('hidden');
+            }
+        }
+
+        function goToMatch(index) {
+            matches.forEach(m => m.classList.remove('active-match'));
+            matchIndex = (index + matches.length) % matches.length;
+            
+            const active = matches[matchIndex];
+            if (active) {
+                active.classList.add('active-match');
+                active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                currentMatchEl.innerText = matchIndex + 1;
+            }
+        }
+
+        function nextMatch() { goToMatch(matchIndex + 1); }
+        function prevMatch() { goToMatch(matchIndex - 1); }
+
+        function showEditor() {
+            currentNoteId = null;
+            titleInput.value = "";
+            contentInput.value = "";
+            document.getElementById('editor-status').innerText = "Nayi Note";
+            
+            emptyState.classList.add('hidden');
+            viewMode.classList.add('hidden');
+            editorMode.classList.remove('hidden');
+        }
+
+        function editCurrentNote() {
+            const note = notes.find(n => n.id === currentNoteId);
+            titleInput.value = note.title;
+            contentInput.value = note.content;
+            document.getElementById('editor-status').innerText = "Editing Mode";
+            
+            viewMode.classList.add('hidden');
+            editorMode.classList.remove('hidden');
+        }
+
+        function saveNote() {
+            const title = titleInput.value.trim() || "Bina Title Ki Note";
+            const content = contentInput.value.trim();
+
+            if (currentNoteId) {
+                notes = notes.map(n => n.id === currentNoteId ? {...n, title, content} : n);
+            } else {
+                const newNote = { id: Date.now(), title, content };
+                notes.unshift(newNote);
+                currentNoteId = newNote.id;
+            }
+
+            localStorage.setItem('my-local-notes-v5', JSON.stringify(notes));
+            closeEditor();
+            selectNote(currentNoteId);
+        }
+
+        function deleteNote(id) {
+            notes = notes.filter(n => n.id !== id);
+            localStorage.setItem('my-local-notes-v5', JSON.stringify(notes));
+            if (currentNoteId === id) {
+                currentNoteId = null;
+                viewMode.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            }
+            renderNotes();
+        }
+
+        function closeEditor() {
+            editorMode.classList.add('hidden');
+            if (currentNoteId) {
+                viewMode.classList.remove('hidden');
+            } else {
+                emptyState.classList.remove('hidden');
+            }
+        }
+
+        function clearSearch() {
+            searchInput.value = "";
+            updateDisplay();
+            renderNotes();
+        }
+
+        searchInput.addEventListener('input', () => {
+            renderNotes();
+            if (currentNoteId) updateDisplay();
+        });
+    </script>
+</body>
+</html>
